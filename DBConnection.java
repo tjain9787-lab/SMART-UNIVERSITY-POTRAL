@@ -1,0 +1,60 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+
+/**
+ *
+ * @author tjain
+ */
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DBConnection {
+
+    // ===== Database Settings =====
+    private static final String HOST     = "localhost";
+    private static final String PORT     = "3306";
+    private static final String DATABASE = "university_portal";
+    private static final String USERNAME = "root";
+    private static final String PASSWORD = ""; // XAMPP default = empty
+
+    // Connection URL
+    private static final String URL =
+        "jdbc:mysql://" + HOST + ":" + PORT + "/" + DATABASE +
+        "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+
+    // ===== Get Connection Method =====
+    public static Connection getConnection() {
+        Connection conn = null;
+        try {
+            conn = DriverManager.getConnection(URL, USERNAME, PASSWORD);
+            System.out.println("✅ Database Connected Successfully!");
+        } catch (SQLException e) {
+            System.out.println("❌ Connection Failed: " + e.getMessage());
+        }
+        return conn;
+    }
+
+    // ===== Test Method =====
+    public static void main(String[] args) {
+        System.out.println("Testing database connection...");
+        System.out.println("URL: " + URL);
+        
+        Connection conn = getConnection();
+        
+        if (conn != null) {
+            System.out.println("✅ Connection Test PASSED!");
+            try {
+                conn.close();
+                System.out.println("✅ Connection closed successfully.");
+            } catch (SQLException e) {
+                System.out.println("Error closing: " + e.getMessage());
+            }
+        } else {
+            System.out.println("❌ Connection Test FAILED!");
+            System.out.println("Check: 1) XAMPP MySQL running? 2) DB name correct?");
+        }
+    }
+}
