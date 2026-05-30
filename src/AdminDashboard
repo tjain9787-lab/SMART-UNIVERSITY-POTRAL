@@ -1,0 +1,484 @@
+package smartuniversityportal;
+
+import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import smartuniversityportal.DBConnection;
+
+public class AdminDashboard extends JFrame {
+
+    // Colors
+    private final Color NAVY       = new Color(15, 32, 68);
+    private final Color BLUE       = new Color(26, 86, 219);
+    private final Color WHITE      = Color.WHITE;
+    private final Color GRAY_BG    = new Color(241, 245, 249);
+    private final Color GRAY_TEXT  = new Color(100, 116, 139);
+    private final Color SIDEBAR_BG = new Color(15, 32, 68);
+
+    // Main panels
+    private JPanel mainContent;
+    private JLabel lblStudentCount, lblFacultyCount, 
+                   lblCourseCount, lblFeeCount;
+
+    public AdminDashboard() {
+        initUI();
+        loadStats();
+    }
+
+    private void initUI() {
+        setTitle("Smart University Portal — Admin Dashboard");
+        setSize(1100, 680);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        getContentPane().setBackground(GRAY_BG);
+
+        add(makeSidebar(),  BorderLayout.WEST);
+        add(makeHeader(),   BorderLayout.NORTH);
+        add(makeContent(),  BorderLayout.CENTER);
+    }
+
+    // ── SIDEBAR ──
+    private JPanel makeSidebar() {
+        JPanel sidebar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                GradientPaint gp = new GradientPaint(
+                    0, 0, NAVY, 0, getHeight(), new Color(10,20,50));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        sidebar.setPreferredSize(new Dimension(220, 0));
+        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        sidebar.setBorder(new EmptyBorder(20, 0, 20, 0));
+
+        // Logo area
+        JLabel logo = new JLabel("🏛", SwingConstants.CENTER);
+        logo.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 32));
+        logo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logo.setBorder(new EmptyBorder(10, 0, 4, 0));
+
+        JLabel appName = new JLabel("University Portal");
+        appName.setFont(new Font("Georgia", Font.BOLD, 13));
+        appName.setForeground(WHITE);
+        appName.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel role = new JLabel("Admin Panel");
+        role.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        role.setForeground(new Color(147, 197, 253));
+        role.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        sidebar.add(logo);
+        sidebar.add(appName);
+        sidebar.add(role);
+        sidebar.add(Box.createVerticalStrut(20));
+
+        // Divider
+        JSeparator sep = new JSeparator();
+        sep.setForeground(new Color(255,255,255,40));
+        sep.setMaximumSize(new Dimension(180, 1));
+        sep.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sidebar.add(sep);
+        sidebar.add(Box.createVerticalStrut(16));
+
+        // Nav buttons
+        String[][] navItems = {
+            {"🏠", "Dashboard"},
+            {"👥", "Students"},
+            {"👨‍🏫", "Faculty"},
+            {"📚", "Courses"},
+            {"📋", "Attendance"},
+            {"📊", "Results"},
+            {"💰", "Fees"},
+            {"📈", "Reports"},
+        };
+
+        for (String[] item : navItems) {
+            sidebar.add(makeSidebarBtn(item[0], item[1]));
+            sidebar.add(Box.createVerticalStrut(4));
+        }
+
+        sidebar.add(Box.createVerticalGlue());
+
+        // Logout button
+        JButton btnLogout = makeSidebarBtn("🚪", "Logout");
+        btnLogout.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to logout?",
+                "Logout", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                new Login().setVisible(true);
+                this.dispose();
+            }
+        });
+        sidebar.add(btnLogout);
+
+        return sidebar;
+    }
+
+    // Sidebar button maker
+    private JButton makeSidebarBtn(String icon, String label) {
+        JButton btn = new JButton(icon + "  " + label) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isRollover()) {
+                    g2.setColor(new Color(26, 86, 219, 80));
+                    g2.fill(new RoundRectangle2D.Double(
+                        8, 2, getWidth()-16, getHeight()-4, 8, 8));
+                }
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 13));
+        btn.setForeground(new Color(200, 220, 255));
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setHorizontalAlignment(SwingConstants.LEFT);
+        btn.setMaximumSize(new Dimension(200, 40));
+        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(0, 20, 0, 0));
+
+        // Action per module
+        btn.addActionListener(e -> loadModule(label));
+
+        return btn;
+    }
+
+    // ── HEADER ──
+    private JPanel makeHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(WHITE);
+        header.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0,
+                new Color(226, 232, 240)),
+            new EmptyBorder(14, 24, 14, 24)));
+
+        JLabel title = new JLabel("Dashboard");
+        title.setFont(new Font("Georgia", Font.BOLD, 18));
+        title.setForeground(NAVY);
+
+        JLabel adminInfo = new JLabel("👤 Admin  |  " +
+            java.time.LocalDate.now().toString());
+        adminInfo.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        adminInfo.setForeground(GRAY_TEXT);
+
+        header.add(title,     BorderLayout.WEST);
+        header.add(adminInfo, BorderLayout.EAST);
+
+        return header;
+    }
+
+    // ── MAIN CONTENT ──
+    private JScrollPane makeContent() {
+        mainContent = new JPanel();
+        mainContent.setBackground(GRAY_BG);
+        mainContent.setLayout(new BorderLayout());
+        mainContent.setBorder(new EmptyBorder(24, 24, 24, 24));
+
+        // Default: show dashboard home
+        showDashboardHome();
+
+        JScrollPane scroll = new JScrollPane(mainContent);
+        scroll.setBorder(null);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        return scroll;
+    }
+
+    // ── DASHBOARD HOME ──
+    private void showDashboardHome() {
+        mainContent.removeAll();
+
+        JPanel homePanel = new JPanel();
+        homePanel.setOpaque(false);
+        homePanel.setLayout(new BoxLayout(homePanel, BoxLayout.Y_AXIS));
+
+        // Greeting
+        JLabel greeting = new JLabel("Good " + getTimeOfDay() + 
+            ", Admin! 👋");
+        greeting.setFont(new Font("Georgia", Font.BOLD, 22));
+        greeting.setForeground(NAVY);
+        greeting.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel greetSub = new JLabel(
+            "Here's what's happening at your university today.");
+        greetSub.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        greetSub.setForeground(GRAY_TEXT);
+        greetSub.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        homePanel.add(greeting);
+        homePanel.add(Box.createVerticalStrut(4));
+        homePanel.add(greetSub);
+        homePanel.add(Box.createVerticalStrut(24));
+
+        // Stat cards row
+        JPanel statsRow = new JPanel(new GridLayout(1, 4, 16, 0));
+        statsRow.setOpaque(false);
+        statsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
+        statsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        lblStudentCount = new JLabel("...");
+        lblFacultyCount = new JLabel("...");
+        lblCourseCount  = new JLabel("...");
+        lblFeeCount     = new JLabel("...");
+
+        statsRow.add(makeStatCard("👥 Students",
+            lblStudentCount, new Color(219,234,254), BLUE));
+        statsRow.add(makeStatCard("👨‍🏫 Faculty",
+            lblFacultyCount, new Color(220,252,231),
+            new Color(22,163,74)));
+        statsRow.add(makeStatCard("📚 Courses",
+            lblCourseCount,  new Color(254,249,195),
+            new Color(161,98,7)));
+        statsRow.add(makeStatCard("💰 Fees Paid",
+            lblFeeCount,     new Color(252,231,243),
+            new Color(157,23,77)));
+
+        homePanel.add(statsRow);
+        homePanel.add(Box.createVerticalStrut(28));
+
+        // Quick actions
+        JLabel qaTitle = new JLabel("Quick Actions");
+        qaTitle.setFont(new Font("Georgia", Font.BOLD, 16));
+        qaTitle.setForeground(NAVY);
+        qaTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        homePanel.add(qaTitle);
+        homePanel.add(Box.createVerticalStrut(12));
+
+        JPanel qaRow = new JPanel(new GridLayout(1, 4, 16, 0));
+        qaRow.setOpaque(false);
+        qaRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+        qaRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        qaRow.add(makeQuickBtn("➕ Add Student",  BLUE));
+        qaRow.add(makeQuickBtn("📋 Mark Attendance",
+            new Color(22,163,74)));
+        qaRow.add(makeQuickBtn("📊 Enter Results",
+            new Color(161,98,7)));
+        qaRow.add(makeQuickBtn("💰 Update Fee",
+            new Color(157,23,77)));
+
+        homePanel.add(qaRow);
+        homePanel.add(Box.createVerticalStrut(28));
+
+        // Recent activity
+        JLabel raTitle = new JLabel("Recent Activity");
+        raTitle.setFont(new Font("Georgia", Font.BOLD, 16));
+        raTitle.setForeground(NAVY);
+        raTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        homePanel.add(raTitle);
+        homePanel.add(Box.createVerticalStrut(12));
+
+        String[] activities = {
+            "👥  3 students enrolled in the system",
+            "📋  Attendance marked for BCA Sem 4",
+            "📊  Mid-Term results entered for DSA",
+            "💰  Fee payment received from Tanisha Arora",
+            "👨‍🏫  3 faculty members active",
+        };
+
+        JPanel actPanel = new JPanel();
+        actPanel.setOpaque(false);
+        actPanel.setLayout(new BoxLayout(actPanel, BoxLayout.Y_AXIS));
+        actPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        for (String act : activities) {
+            JPanel row = new JPanel(new BorderLayout());
+            row.setBackground(WHITE);
+            row.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0,0,1,0,
+                    new Color(241,245,249)),
+                new EmptyBorder(10, 16, 10, 16)));
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+
+            JLabel lbl = new JLabel(act);
+            lbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
+            lbl.setForeground(new Color(51, 65, 85));
+
+            JLabel time = new JLabel("Today");
+            time.setFont(new Font("SansSerif", Font.PLAIN, 11));
+            time.setForeground(GRAY_TEXT);
+
+            row.add(lbl,  BorderLayout.WEST);
+            row.add(time, BorderLayout.EAST);
+            actPanel.add(row);
+        }
+
+        // Wrap in rounded panel
+        JPanel actWrap = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(WHITE);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),12,12));
+            }
+        };
+        actWrap.setOpaque(false);
+        actWrap.add(actPanel);
+        actWrap.setAlignmentX(Component.LEFT_ALIGNMENT);
+        actWrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
+
+        homePanel.add(actWrap);
+
+        mainContent.add(homePanel, BorderLayout.NORTH);
+        mainContent.revalidate();
+        mainContent.repaint();
+    }
+
+    // ── STAT CARD ──
+    private JPanel makeStatCard(String title, JLabel countLbl,
+                                 Color bg, Color accent) {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(WHITE);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),14,14));
+                g2.setColor(bg);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),40,14,14));
+                g2.fillRect(0,26,getWidth(),14);
+            }
+        };
+        card.setOpaque(false);
+        card.setLayout(new BorderLayout());
+        card.setBorder(new EmptyBorder(14, 16, 14, 16));
+
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+        titleLbl.setForeground(accent);
+
+        countLbl.setFont(new Font("Georgia", Font.BOLD, 28));
+        countLbl.setForeground(NAVY);
+
+        JLabel subLbl = new JLabel("Total registered");
+        subLbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        subLbl.setForeground(GRAY_TEXT);
+
+        JPanel bottom = new JPanel();
+        bottom.setOpaque(false);
+        bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
+        bottom.add(countLbl);
+        bottom.add(subLbl);
+
+        card.add(titleLbl, BorderLayout.NORTH);
+        card.add(bottom,   BorderLayout.CENTER);
+
+        return card;
+    }
+
+    // ── QUICK ACTION BUTTON ──
+    private JButton makeQuickBtn(String text, Color color) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ?
+                    color.darker() : color);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),10,10));
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btn.setForeground(WHITE);
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return btn;
+    }
+
+    // ── LOAD MODULE (sidebar clicks) ──
+    private void loadModule(String module) {
+        mainContent.removeAll();
+        switch (module) {
+            case "Dashboard":
+                showDashboardHome();
+                return;
+            case "Students":
+                mainContent.add(new StudentPanel(), BorderLayout.CENTER);
+                break;
+            case "Faculty":
+                mainContent.add(new FacultyPanel(), BorderLayout.CENTER);
+                break;
+            case "Courses":
+                mainContent.add(new CoursePanel(), BorderLayout.CENTER);
+                break;
+            case "Attendance":
+                mainContent.add(new AttendancePanel(), BorderLayout.CENTER);
+                break;
+            case "Results":
+                mainContent.add(new ResultPanel(), BorderLayout.CENTER);
+                break;
+            case "Fees":
+                mainContent.add(new FeePanel(), BorderLayout.CENTER);
+                break;
+            default:
+                JLabel soon = new JLabel(module + " — Coming Soon!",
+                    SwingConstants.CENTER);
+                soon.setFont(new Font("Georgia", Font.BOLD, 20));
+                soon.setForeground(GRAY_TEXT);
+                mainContent.add(soon, BorderLayout.CENTER);
+        }
+        mainContent.revalidate();
+        mainContent.repaint();
+    }
+
+    // ── LOAD DB STATS ──
+    private void loadStats() {
+        try {
+            Connection conn = DBConnection.getConnection();
+
+            ResultSet r1 = conn.createStatement()
+                .executeQuery("SELECT COUNT(*) FROM students");
+            r1.next();
+            lblStudentCount.setText(String.valueOf(r1.getInt(1)));
+
+            ResultSet r2 = conn.createStatement()
+                .executeQuery("SELECT COUNT(*) FROM faculty");
+            r2.next();
+            lblFacultyCount.setText(String.valueOf(r2.getInt(1)));
+
+            ResultSet r3 = conn.createStatement()
+                .executeQuery("SELECT COUNT(*) FROM courses");
+            r3.next();
+            lblCourseCount.setText(String.valueOf(r3.getInt(1)));
+
+            ResultSet r4 = conn.createStatement()
+                .executeQuery(
+                    "SELECT COUNT(*) FROM fees WHERE status='Paid'");
+            r4.next();
+            lblFeeCount.setText(String.valueOf(r4.getInt(1)));
+
+            conn.close();
+        } catch (Exception e) {
+            System.out.println("Stats error: " + e.getMessage());
+        }
+    }
+
+    // ── TIME GREETING ──
+    private String getTimeOfDay() {
+        int hour = java.time.LocalTime.now().getHour();
+        if (hour < 12) return "Morning";
+        else if (hour < 17) return "Afternoon";
+        else return "Evening";
+    }
+}
