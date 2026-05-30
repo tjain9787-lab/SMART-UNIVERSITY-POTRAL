@@ -1,0 +1,427 @@
+package smartuniversityportal;
+
+import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
+public class FeePanel extends JPanel {
+
+    private final Color NAVY    = new Color(15,32,68);
+    private final Color WHITE   = Color.WHITE;
+    private final Color GRAY_BG = new Color(241,245,249);
+
+    private JTable table;
+    private DefaultTableModel model;
+    private JComboBox<String> cmbStudent, cmbStatus;
+    private JTextField txtAmount, txtDueDate;
+    private JButton btnAdd, btnMarkPaid, btnDelete, btnClear;
+    private JLabel lblTotal, lblPending;
+
+    public FeePanel() {
+        setLayout(new BorderLayout());
+        setBackground(GRAY_BG);
+        setBorder(new EmptyBorder(20,20,20,20));
+        add(makeTopBar(),    BorderLayout.NORTH);
+        add(makeCenter(),    BorderLayout.CENTER);
+        add(makeFormPanel(), BorderLayout.EAST);
+        loadFees();
+        loadSummary();
+    }
+
+    private JPanel makeTopBar() {
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        bar.setBorder(new EmptyBorder(0,0,16,0));
+
+        JLabel title = new JLabel("💰  Fee Management");
+        title.setFont(new Font("Georgia", Font.BOLD, 18));
+        title.setForeground(NAVY);
+
+        // Summary labels
+        lblTotal   = new JLabel("Total Collected: ₹0");
+        lblPending = new JLabel("Pending: ₹0");
+        lblTotal.setFont(new Font("SansSerif", Font.BOLD, 13));
+        lblPending.setFont(new Font("SansSerif", Font.BOLD, 13));
+        lblTotal.setForeground(new Color(22,163,74));
+        lblPending.setForeground(new Color(220,38,38));
+
+        JPanel right = new JPanel(new FlowLayout(
+            FlowLayout.RIGHT,16,0));
+        right.setOpaque(false);
+        right.add(lblTotal);
+        right.add(lblPending);
+
+        bar.add(title, BorderLayout.WEST);
+        bar.add(right, BorderLayout.EAST);
+        return bar;
+    }
+
+    private JScrollPane makeCenter() {
+        String[] cols = {"ID","Student","Roll No",
+                         "Amount","Due Date","Paid Date","Status"};
+        model = new DefaultTableModel(cols,0) {
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        };
+        table = new JTable(model);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setRowHeight(32);
+        table.getTableHeader().setFont(
+            new Font("SansSerif", Font.BOLD, 13));
+        table.getTableHeader().setBackground(NAVY);
+        table.getTableHeader().setForeground(WHITE);
+        table.setGridColor(new Color(226,232,240));
+
+        // Hide ID
+        table.getColumnModel().getColumn(0).setMinWidth(0);
+        table.getColumnModel().getColumn(0).setMaxWidth(0);
+        table.getColumnModel().getColumn(0).setWidth(0);
+
+        // Color by status
+        table.setDefaultRenderer(Object.class,
+            new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                JTable t, Object val, boolean sel,
+                boolean focus, int row, int col) {
+                super.getTableCellRendererComponent(
+                    t,val,sel,focus,row,col);
+                if (!sel) {
+                    Object s = t.getValueAt(row,6);
+                    if (s != null) {
+                        switch(s.toString()) {
+                        case "Paid":
+                            setBackground(new Color(200,255,200));
+                            break;
+                        case "Pending":
+                            setBackground(new Color(255,255,200));
+                            break;
+                        case "Overdue":
+                            setBackground(new Color(255,200,200));
+                            break;
+                        default:
+                            setBackground(WHITE);
+                        }
+                    }
+                }
+                return this;
+            }
+        });
+
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                int row = table.getSelectedRow();
+                if (row != -1) {
+                    txtAmount.setText(
+                        model.getValueAt(row,3).toString()
+                            .replace("₹",""));
+                    txtDueDate.setText(
+                        model.getValueAt(row,4).toString());
+                    cmbStatus.setSelectedItem(
+                        model.getValueAt(row,6).toString());
+                }
+            }
+        });
+
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createLineBorder(
+            new Color(226,232,240),1,true));
+        return scroll;
+    }
+
+    private JPanel makeFormPanel() {
+        JPanel form = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(WHITE);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),16,16));
+            }
+        };
+        form.setOpaque(false);
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setBorder(new EmptyBorder(20,20,20,20));
+        form.setPreferredSize(new Dimension(250,0));
+
+        JLabel t = new JLabel("Fee Details");
+        t.setFont(new Font("Georgia", Font.BOLD, 15));
+        t.setForeground(NAVY);
+        t.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        cmbStudent = new JComboBox<>();
+        cmbStudent.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        cmbStudent.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
+        cmbStudent.setAlignmentX(Component.LEFT_ALIGNMENT);
+        loadStudentCombo();
+
+        cmbStatus = new JComboBox<>(
+            new String[]{"Pending","Paid","Overdue"});
+        cmbStatus.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        cmbStatus.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
+        cmbStatus.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        txtAmount  = makeField();
+        txtAmount.setText("45000");
+        txtDueDate = makeField();
+        txtDueDate.setText(
+            java.time.LocalDate.now().plusMonths(1).toString());
+
+        btnAdd      = makeBtn("➕ Add Fee",
+            new Color(22,163,74));
+        btnMarkPaid = makeBtn("✅ Mark as Paid",
+            new Color(26,86,219));
+        btnDelete   = makeBtn("🗑 Delete",
+            new Color(220,38,38));
+        btnClear    = makeBtn("✕ Clear",
+            new Color(100,116,139));
+
+        for (JButton b : new JButton[]{
+                btnAdd,btnMarkPaid,btnDelete,btnClear})
+            b.setMaximumSize(new Dimension(Integer.MAX_VALUE,38));
+
+        btnAdd.addActionListener(e      -> addFee());
+        btnMarkPaid.addActionListener(e -> markPaid());
+        btnDelete.addActionListener(e   -> deleteFee());
+        btnClear.addActionListener(e    -> clearForm());
+
+        form.add(t);
+        form.add(Box.createVerticalStrut(12));
+        form.add(lbl("Student"));  form.add(cmbStudent);
+        form.add(Box.createVerticalStrut(8));
+        form.add(lbl("Amount (₹)"));form.add(txtAmount);
+        form.add(Box.createVerticalStrut(8));
+        form.add(lbl("Due Date")); form.add(txtDueDate);
+        form.add(Box.createVerticalStrut(8));
+        form.add(lbl("Status"));   form.add(cmbStatus);
+        form.add(Box.createVerticalStrut(16));
+        form.add(btnAdd);
+        form.add(Box.createVerticalStrut(6));
+        form.add(btnMarkPaid);
+        form.add(Box.createVerticalStrut(6));
+        form.add(btnDelete);
+        form.add(Box.createVerticalStrut(6));
+        form.add(btnClear);
+        return form;
+    }
+
+    private JLabel lbl(String t) {
+        JLabel l = new JLabel(t);
+        l.setFont(new Font("SansSerif", Font.BOLD, 11));
+        l.setForeground(new Color(51,65,85));
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
+    }
+
+    private JTextField makeField() {
+        JTextField tf = new JTextField();
+        tf.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
+        tf.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(
+                new Color(203,213,225),1,true),
+            BorderFactory.createEmptyBorder(5,8,5,8)));
+        tf.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return tf;
+    }
+
+    private JButton makeBtn(String text, Color color) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ?
+                    color.darker() : color);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),8,8));
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btn.setForeground(WHITE);
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return btn;
+    }
+
+    private void loadStudentCombo() {
+        try {
+            Connection conn = DBConnection.getConnection();
+            ResultSet rs = conn.createStatement().executeQuery(
+                "SELECT student_id,name,roll_no FROM students " +
+                "ORDER BY name");
+            cmbStudent.removeAllItems();
+            while (rs.next())
+                cmbStudent.addItem(rs.getInt("student_id") +
+                    " - " + rs.getString("name") +
+                    " (" + rs.getString("roll_no") + ")");
+            conn.close();
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private void loadFees() {
+        try {
+            Connection conn = DBConnection.getConnection();
+            ResultSet rs = conn.createStatement().executeQuery(
+                "SELECT f.fee_id, s.name, s.roll_no, " +
+                "f.amount, f.due_date, f.paid_date, f.status " +
+                "FROM fees f " +
+                "JOIN students s ON f.student_id=s.student_id " +
+                "ORDER BY f.status, s.name");
+            model.setRowCount(0);
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt(1),
+                    rs.getString(2),
+                    rs.getString(3),
+                    "₹" + rs.getDouble(4),
+                    rs.getString(5),
+                    rs.getString(6) != null ?
+                        rs.getString(6) : "Not Paid",
+                    rs.getString(7)
+                });
+            }
+            conn.close();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Error: " + e.getMessage());
+        }
+    }
+
+    private void loadSummary() {
+        try {
+            Connection conn = DBConnection.getConnection();
+            ResultSet r1 = conn.createStatement().executeQuery(
+                "SELECT COALESCE(SUM(amount),0) FROM fees " +
+                "WHERE status='Paid'");
+            r1.next();
+            lblTotal.setText("Collected: ₹" +
+                String.format("%.0f", r1.getDouble(1)));
+
+            ResultSet r2 = conn.createStatement().executeQuery(
+                "SELECT COALESCE(SUM(amount),0) FROM fees " +
+                "WHERE status!='Paid'");
+            r2.next();
+            lblPending.setText("Pending: ₹" +
+                String.format("%.0f", r2.getDouble(1)));
+            conn.close();
+        } catch (Exception e) {
+            System.out.println("Summary error: " + e.getMessage());
+        }
+    }
+
+    private void addFee() {
+        if (cmbStudent.getSelectedItem() == null ||
+            txtAmount.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Student and Amount required!");
+            return;
+        }
+        try {
+            int sid = Integer.parseInt(
+                cmbStudent.getSelectedItem()
+                    .toString().split(" - ")[0]);
+            double amt = Double.parseDouble(
+                txtAmount.getText().trim());
+            String due = txtDueDate.getText().trim();
+            String status = cmbStatus.getSelectedItem().toString();
+
+            Connection conn = DBConnection.getConnection();
+            PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO fees(student_id,amount," +
+                "due_date,status) VALUES(?,?,?,?)");
+            ps.setInt(1,sid);
+            ps.setDouble(2,amt);
+            ps.setString(3,due);
+            ps.setString(4,status);
+            ps.executeUpdate();
+            JOptionPane.showMessageDialog(this,
+                "✅ Fee record added!");
+            loadFees(); loadSummary(); clearForm();
+            conn.close();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Error: " + e.getMessage());
+        }
+    }
+
+    private void markPaid() {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this,
+                "Select a fee record first!");
+            return;
+        }
+        if (model.getValueAt(row,6).toString().equals("Paid")) {
+            JOptionPane.showMessageDialog(this,
+                "This fee is already paid!");
+            return;
+        }
+        try {
+            int id = (int) model.getValueAt(row,0);
+            String today = java.time.LocalDate.now().toString();
+            Connection conn = DBConnection.getConnection();
+            PreparedStatement ps = conn.prepareStatement(
+                "UPDATE fees SET status='Paid'," +
+                "paid_date=? WHERE fee_id=?");
+            ps.setString(1,today);
+            ps.setInt(2,id);
+            ps.executeUpdate();
+            JOptionPane.showMessageDialog(this,
+                "✅ Fee marked as Paid on " + today);
+            loadFees(); loadSummary(); conn.close();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Error: " + e.getMessage());
+        }
+    }
+
+    private void deleteFee() {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this,
+                "Select a record to delete!");
+            return;
+        }
+        int c = JOptionPane.showConfirmDialog(this,
+            "Delete this fee record?","Confirm",
+            JOptionPane.YES_NO_OPTION);
+        if (c == JOptionPane.YES_OPTION) {
+            try {
+                int id = (int) model.getValueAt(row,0);
+                Connection conn = DBConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM fees WHERE fee_id=?");
+                ps.setInt(1,id);
+                ps.executeUpdate();
+                JOptionPane.showMessageDialog(this,
+                    "✅ Record deleted!");
+                loadFees(); loadSummary(); conn.close();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this,
+                    "Error: " + e.getMessage());
+            }
+        }
+    }
+
+    private void clearForm() {
+        txtAmount.setText("45000");
+        txtDueDate.setText(
+            java.time.LocalDate.now().plusMonths(1).toString());
+        cmbStatus.setSelectedIndex(0);
+        table.clearSelection();
+    }
+}
