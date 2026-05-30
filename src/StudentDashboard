@@ -1,0 +1,581 @@
+package smartuniversityportal;
+
+import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
+public class StudentDashboard extends JFrame {
+
+    private final Color NAVY    = new Color(15,32,68);
+    private final Color BLUE    = new Color(26,86,219);
+    private final Color WHITE   = Color.WHITE;
+    private final Color GRAY_BG = new Color(241,245,249);
+    private final Color GRAY_TXT= new Color(100,116,139);
+
+    private int studentId;
+    private String studentName;
+
+    // Stat labels
+    private JLabel lblAttPct, lblAvgMarks,
+                   lblFeeStatus, lblSemester;
+
+    public StudentDashboard(int studentId, String studentName) {
+        this.studentId   = studentId;
+        this.studentName = studentName;
+        initUI();
+        loadStats();
+    }
+
+    // Default constructor (for testing)
+    public StudentDashboard() {
+        this(1, "Student");
+    }
+
+    private void initUI() {
+        setTitle("Smart University Portal — Student Dashboard");
+        setSize(1000, 650);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        getContentPane().setBackground(GRAY_BG);
+
+        add(makeSidebar(), BorderLayout.WEST);
+        add(makeHeader(),  BorderLayout.NORTH);
+        add(makeContent(), BorderLayout.CENTER);
+    }
+
+    // ── SIDEBAR ──
+    private JPanel makeSidebar() {
+        JPanel sb = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                GradientPaint gp = new GradientPaint(
+                    0,0,NAVY,0,getHeight(),
+                    new Color(10,20,50));
+                g2.setPaint(gp);
+                g2.fillRect(0,0,getWidth(),getHeight());
+            }
+        };
+        sb.setPreferredSize(new Dimension(200,0));
+        sb.setLayout(new BoxLayout(sb,BoxLayout.Y_AXIS));
+        sb.setBorder(new EmptyBorder(20,0,20,0));
+
+        JLabel icon = new JLabel("🎓",SwingConstants.CENTER);
+        icon.setFont(new Font("Segoe UI Emoji",Font.PLAIN,30));
+        icon.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel name = new JLabel(studentName);
+        name.setFont(new Font("Georgia",Font.BOLD,13));
+        name.setForeground(WHITE);
+        name.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel role = new JLabel("Student");
+        role.setFont(new Font("SansSerif",Font.PLAIN,11));
+        role.setForeground(new Color(147,197,253));
+        role.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        sb.add(icon);
+        sb.add(Box.createVerticalStrut(8));
+        sb.add(name);
+        sb.add(role);
+        sb.add(Box.createVerticalStrut(20));
+
+        JSeparator sep = new JSeparator();
+        sep.setForeground(new Color(255,255,255,40));
+        sep.setMaximumSize(new Dimension(160,1));
+        sep.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sb.add(sep);
+        sb.add(Box.createVerticalStrut(16));
+
+        String[][] items = {
+            {"🏠","Dashboard"},
+            {"📋","My Attendance"},
+            {"📊","My Results"},
+            {"💰","My Fee Status"},
+        };
+
+        for (String[] item : items) {
+            sb.add(makeSideBtn(item[0],item[1]));
+            sb.add(Box.createVerticalStrut(4));
+        }
+
+        sb.add(Box.createVerticalGlue());
+
+        JButton logout = makeSideBtn("🚪","Logout");
+        logout.addActionListener(e -> {
+            new Login().setVisible(true);
+            dispose();
+        });
+        sb.add(logout);
+        return sb;
+    }
+
+    private JButton makeSideBtn(String icon, String label) {
+        JButton btn = new JButton(icon+"  "+label) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isRollover()) {
+                    g2.setColor(new Color(26,86,219,80));
+                    g2.fill(new RoundRectangle2D.Double(
+                        8,2,getWidth()-16,getHeight()-4,8,8));
+                }
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(new Font("Segoe UI Emoji",Font.PLAIN,12));
+        btn.setForeground(new Color(200,220,255));
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setHorizontalAlignment(SwingConstants.LEFT);
+        btn.setMaximumSize(new Dimension(180,38));
+        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btn.setCursor(Cursor.getPredefinedCursor(
+            Cursor.HAND_CURSOR));
+        btn.setBorder(new EmptyBorder(0,20,0,0));
+        btn.addActionListener(e -> loadModule(label));
+        return btn;
+    }
+
+    // ── HEADER ──
+    private JPanel makeHeader() {
+        JPanel h = new JPanel(new BorderLayout());
+        h.setBackground(WHITE);
+        h.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(
+                0,0,1,0,new Color(226,232,240)),
+            new EmptyBorder(14,24,14,24)));
+        JLabel t = new JLabel("My Dashboard");
+        t.setFont(new Font("Georgia",Font.BOLD,18));
+        t.setForeground(NAVY);
+        JLabel info = new JLabel(
+            "🎓 "+studentName+" | "+
+            java.time.LocalDate.now());
+        info.setFont(new Font("SansSerif",Font.PLAIN,12));
+        info.setForeground(GRAY_TXT);
+        h.add(t,   BorderLayout.WEST);
+        h.add(info,BorderLayout.EAST);
+        return h;
+    }
+
+    // ── MAIN CONTENT ──
+    private JPanel mainPanel;
+
+    private JScrollPane makeContent() {
+        mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(GRAY_BG);
+        mainPanel.setBorder(new EmptyBorder(24,24,24,24));
+        showHome();
+        JScrollPane sc = new JScrollPane(mainPanel);
+        sc.setBorder(null);
+        sc.getVerticalScrollBar().setUnitIncrement(16);
+        return sc;
+    }
+
+    // ── HOME VIEW ──
+    private void showHome() {
+        mainPanel.removeAll();
+        JPanel home = new JPanel();
+        home.setOpaque(false);
+        home.setLayout(new BoxLayout(home,BoxLayout.Y_AXIS));
+
+        JLabel greet = new JLabel(
+            "Welcome, "+studentName+"! 👋");
+        greet.setFont(new Font("Georgia",Font.BOLD,22));
+        greet.setForeground(NAVY);
+        greet.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel sub = new JLabel(
+            "Here is your academic summary.");
+        sub.setFont(new Font("SansSerif",Font.PLAIN,13));
+        sub.setForeground(GRAY_TXT);
+        sub.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        home.add(greet);
+        home.add(Box.createVerticalStrut(4));
+        home.add(sub);
+        home.add(Box.createVerticalStrut(24));
+
+        // Stat cards
+        JPanel cards = new JPanel(new GridLayout(1,4,16,0));
+        cards.setOpaque(false);
+        cards.setMaximumSize(new Dimension(Integer.MAX_VALUE,110));
+        cards.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        lblAttPct    = new JLabel("...");
+        lblAvgMarks  = new JLabel("...");
+        lblFeeStatus = new JLabel("...");
+        lblSemester  = new JLabel("...");
+
+        cards.add(makeCard("📋 Attendance",
+            lblAttPct,
+            new Color(219,234,254), BLUE));
+        cards.add(makeCard("📊 Avg Marks",
+            lblAvgMarks,
+            new Color(220,252,231),
+            new Color(22,163,74)));
+        cards.add(makeCard("💰 Fee Status",
+            lblFeeStatus,
+            new Color(254,249,195),
+            new Color(161,98,7)));
+        cards.add(makeCard("📅 Semester",
+            lblSemester,
+            new Color(252,231,243),
+            new Color(157,23,77)));
+
+        home.add(cards);
+        home.add(Box.createVerticalStrut(28));
+
+        // Quick links
+        JLabel ql = new JLabel("Quick Links");
+        ql.setFont(new Font("Georgia",Font.BOLD,16));
+        ql.setForeground(NAVY);
+        ql.setAlignmentX(Component.LEFT_ALIGNMENT);
+        home.add(ql);
+        home.add(Box.createVerticalStrut(12));
+
+        JPanel qrow = new JPanel(new GridLayout(1,3,16,0));
+        qrow.setOpaque(false);
+        qrow.setMaximumSize(new Dimension(Integer.MAX_VALUE,60));
+        qrow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        qrow.add(makeQBtn("📋 View Attendance",
+            BLUE));
+        qrow.add(makeQBtn("📊 View Results",
+            new Color(22,163,74)));
+        qrow.add(makeQBtn("💰 Check Fee Status",
+            new Color(161,98,7)));
+
+        home.add(qrow);
+        mainPanel.add(home,BorderLayout.NORTH);
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
+
+    // ── LOAD DB STATS ──
+    private void loadStats() {
+        try {
+            Connection conn = DBConnection.getConnection();
+
+            // Attendance %
+            ResultSet r1 = conn.prepareStatement(
+                "SELECT " +
+                "ROUND(SUM(CASE WHEN status='Present' " +
+                "THEN 1 ELSE 0 END)*100.0/COUNT(*),1) " +
+                "FROM attendance WHERE student_id="
+                +studentId).executeQuery();
+            r1.next();
+            double att = r1.getDouble(1);
+            lblAttPct.setText(att>0 ? att+"%" : "N/A");
+
+            // Avg marks
+            ResultSet r2 = conn.prepareStatement(
+                "SELECT ROUND(AVG(marks),1) FROM results " +
+                "WHERE student_id="+studentId)
+                .executeQuery();
+            r2.next();
+            double avg = r2.getDouble(1);
+            lblAvgMarks.setText(avg>0 ?
+                String.valueOf(avg) : "N/A");
+
+            // Fee status
+            ResultSet r3 = conn.prepareStatement(
+                "SELECT status FROM fees " +
+                "WHERE student_id="+studentId+
+                " ORDER BY fee_id DESC LIMIT 1")
+                .executeQuery();
+            lblFeeStatus.setText(r3.next() ?
+                r3.getString(1) : "N/A");
+
+            // Semester
+            ResultSet r4 = conn.prepareStatement(
+                "SELECT semester FROM students " +
+                "WHERE student_id="+studentId)
+                .executeQuery();
+            r4.next();
+            lblSemester.setText("Sem "+r4.getInt(1));
+
+            conn.close();
+        } catch (Exception e) {
+            System.out.println("Stats error: "+e.getMessage());
+        }
+    }
+
+    // ── LOAD MODULE ──
+    private void loadModule(String mod) {
+        mainPanel.removeAll();
+        switch(mod) {
+            case "Dashboard":
+                showHome(); return;
+            case "My Attendance":
+                mainPanel.add(makeAttView(),
+                    BorderLayout.CENTER);
+                break;
+            case "My Results":
+                mainPanel.add(makeResultView(),
+                    BorderLayout.CENTER);
+                break;
+            case "My Fee Status":
+                mainPanel.add(makeFeeView(),
+                    BorderLayout.CENTER);
+                break;
+        }
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
+
+    // ── ATTENDANCE VIEW ──
+    private JPanel makeAttView() {
+        JPanel p = new JPanel(new BorderLayout(0,12));
+        p.setOpaque(false);
+
+        JLabel t = new JLabel("📋 My Attendance");
+        t.setFont(new Font("Georgia",Font.BOLD,18));
+        t.setForeground(NAVY);
+        t.setBorder(new EmptyBorder(0,0,12,0));
+
+        String[] cols = {"Course","Total Classes",
+                         "Present","Absent","Attendance %"};
+        DefaultTableModel m = new DefaultTableModel(cols,0) {
+            public boolean isCellEditable(
+                int r, int c) { return false; }
+        };
+        JTable tbl = makeTable(m);
+
+        // Color by %
+        tbl.setDefaultRenderer(Object.class,
+            new javax.swing.table.DefaultTableCellRenderer(){
+            @Override
+            public Component getTableCellRendererComponent(
+                JTable t,Object v,boolean s,
+                boolean f,int row,int col){
+                super.getTableCellRendererComponent(
+                    t,v,s,f,row,col);
+                if(!s){
+                    try{
+                        double pct=Double.parseDouble(
+                            t.getValueAt(row,4)
+                             .toString().replace("%",""));
+                        if(pct<75)
+                            setBackground(
+                                new Color(255,200,200));
+                        else if(pct<85)
+                            setBackground(
+                                new Color(255,255,200));
+                        else
+                            setBackground(
+                                new Color(200,255,200));
+                    }catch(Exception ex){
+                        setBackground(WHITE);
+                    }
+                }
+                return this;
+            }
+        });
+
+        try {
+            Connection conn = DBConnection.getConnection();
+            ResultSet rs = conn.prepareStatement(
+                "SELECT c.course_name,COUNT(*) as total," +
+                "SUM(CASE WHEN a.status='Present' " +
+                "THEN 1 ELSE 0 END) as pres," +
+                "SUM(CASE WHEN a.status='Absent' " +
+                "THEN 1 ELSE 0 END) as abs," +
+                "ROUND(SUM(CASE WHEN a.status='Present' " +
+                "THEN 1 ELSE 0 END)*100.0/COUNT(*),1) as pct " +
+                "FROM attendance a JOIN courses c " +
+                "ON a.course_id=c.course_id " +
+                "WHERE a.student_id="+studentId+
+                " GROUP BY c.course_id")
+                .executeQuery();
+            while(rs.next())
+                m.addRow(new Object[]{
+                    rs.getString(1),rs.getInt(2),
+                    rs.getInt(3),rs.getInt(4),
+                    rs.getDouble(5)+"%"});
+            conn.close();
+        } catch(Exception e){
+            System.out.println("Att error: "+e.getMessage());
+        }
+
+        p.add(t, BorderLayout.NORTH);
+        p.add(new JScrollPane(tbl), BorderLayout.CENTER);
+        return p;
+    }
+
+    // ── RESULT VIEW ──
+    private JPanel makeResultView() {
+        JPanel p = new JPanel(new BorderLayout(0,12));
+        p.setOpaque(false);
+
+        JLabel t = new JLabel("📊 My Results");
+        t.setFont(new Font("Georgia",Font.BOLD,18));
+        t.setForeground(NAVY);
+        t.setBorder(new EmptyBorder(0,0,12,0));
+
+        String[] cols = {"Course","Exam Type",
+                         "Marks","Total","Grade"};
+        DefaultTableModel m = new DefaultTableModel(cols,0){
+            public boolean isCellEditable(
+                int r,int c){return false;}
+        };
+        JTable tbl = makeTable(m);
+
+        try {
+            Connection conn = DBConnection.getConnection();
+            ResultSet rs = conn.prepareStatement(
+                "SELECT c.course_name,r.exam_type," +
+                "r.marks,r.total_marks,r.grade " +
+                "FROM results r JOIN courses c " +
+                "ON r.course_id=c.course_id " +
+                "WHERE r.student_id="+studentId)
+                .executeQuery();
+            while(rs.next())
+                m.addRow(new Object[]{
+                    rs.getString(1),rs.getString(2),
+                    rs.getInt(3),rs.getInt(4),
+                    rs.getString(5)});
+            conn.close();
+        } catch(Exception e){
+            System.out.println("Result error: "+e.getMessage());
+        }
+
+        p.add(t, BorderLayout.NORTH);
+        p.add(new JScrollPane(tbl), BorderLayout.CENTER);
+        return p;
+    }
+
+    // ── FEE VIEW ──
+    private JPanel makeFeeView() {
+        JPanel p = new JPanel(new BorderLayout(0,12));
+        p.setOpaque(false);
+
+        JLabel t = new JLabel("💰 My Fee Status");
+        t.setFont(new Font("Georgia",Font.BOLD,18));
+        t.setForeground(NAVY);
+        t.setBorder(new EmptyBorder(0,0,12,0));
+
+        String[] cols = {"Amount","Due Date",
+                         "Paid Date","Status"};
+        DefaultTableModel m = new DefaultTableModel(cols,0){
+            public boolean isCellEditable(
+                int r,int c){return false;}
+        };
+        JTable tbl = makeTable(m);
+
+        try {
+            Connection conn = DBConnection.getConnection();
+            ResultSet rs = conn.prepareStatement(
+                "SELECT amount,due_date,paid_date,status " +
+                "FROM fees WHERE student_id="+studentId)
+                .executeQuery();
+            while(rs.next())
+                m.addRow(new Object[]{
+                    "₹"+rs.getDouble(1),
+                    rs.getString(2),
+                    rs.getString(3)!=null?
+                        rs.getString(3):"Not Paid",
+                    rs.getString(4)});
+            conn.close();
+        } catch(Exception e){
+            System.out.println("Fee error: "+e.getMessage());
+        }
+
+        p.add(t, BorderLayout.NORTH);
+        p.add(new JScrollPane(tbl), BorderLayout.CENTER);
+        return p;
+    }
+
+    // ── HELPERS ──
+    private JTable makeTable(DefaultTableModel m) {
+        JTable tbl = new JTable(m);
+        tbl.setFont(new Font("SansSerif",Font.PLAIN,13));
+        tbl.setRowHeight(32);
+        tbl.getTableHeader().setFont(
+            new Font("SansSerif",Font.BOLD,13));
+        tbl.getTableHeader().setBackground(NAVY);
+        tbl.getTableHeader().setForeground(WHITE);
+        tbl.setGridColor(new Color(226,232,240));
+        return tbl;
+    }
+
+    private JPanel makeCard(String title, JLabel num,
+                            Color bg, Color accent) {
+        JPanel c = new JPanel(){
+            @Override
+            protected void paintComponent(Graphics g){
+                Graphics2D g2=(Graphics2D)g;
+                g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(WHITE);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),14,14));
+                g2.setColor(bg);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),40,14,14));
+                g2.fillRect(0,26,getWidth(),14);
+            }
+        };
+        c.setOpaque(false);
+        c.setLayout(new BorderLayout());
+        c.setBorder(new EmptyBorder(14,16,14,16));
+        JLabel tl = new JLabel(title);
+        tl.setFont(new Font("SansSerif",Font.BOLD,12));
+        tl.setForeground(accent);
+        num.setFont(new Font("Georgia",Font.BOLD,26));
+        num.setForeground(NAVY);
+        JLabel sl = new JLabel("Your record");
+        sl.setFont(new Font("SansSerif",Font.PLAIN,11));
+        sl.setForeground(GRAY_TXT);
+        JPanel bot = new JPanel();
+        bot.setOpaque(false);
+        bot.setLayout(new BoxLayout(bot,BoxLayout.Y_AXIS));
+        bot.add(num); bot.add(sl);
+        c.add(tl, BorderLayout.NORTH);
+        c.add(bot,BorderLayout.CENTER);
+        return c;
+    }
+
+    private JButton makeQBtn(String text, Color color) {
+        JButton b = new JButton(text){
+            @Override
+            protected void paintComponent(Graphics g){
+                Graphics2D g2=(Graphics2D)g;
+                g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover()?
+                    color.darker():color);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),10,10));
+                super.paintComponent(g);
+            }
+        };
+        b.setFont(new Font("SansSerif",Font.BOLD,12));
+        b.setForeground(WHITE);
+        b.setOpaque(false);
+        b.setContentAreaFilled(false);
+        b.setBorderPainted(false);
+        b.setCursor(Cursor.getPredefinedCursor(
+            Cursor.HAND_CURSOR));
+        b.addActionListener(e -> {
+            if(text.contains("Attendance"))
+                loadModule("My Attendance");
+            else if(text.contains("Results"))
+                loadModule("My Results");
+            else
+                loadModule("My Fee Status");
+        });
+        return b;
+    }
+}
