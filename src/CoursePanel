@@ -1,0 +1,283 @@
+package smartuniversityportal;
+
+import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
+import java.sql.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
+public class CoursePanel extends JPanel {
+
+    private final Color NAVY    = new Color(15,32,68);
+    private final Color AMBER   = new Color(161,98,7);
+    private final Color WHITE   = Color.WHITE;
+    private final Color GRAY_BG = new Color(241,245,249);
+
+    private JTable table;
+    private DefaultTableModel model;
+    private JTextField txtName, txtCode, txtSem, txtCredits;
+    private JComboBox<String> cmbFaculty;
+    private JButton btnAdd, btnDelete, btnClear;
+
+    public CoursePanel() {
+        setLayout(new BorderLayout());
+        setBackground(GRAY_BG);
+        setBorder(new EmptyBorder(20,20,20,20));
+        add(makeTopBar(),    BorderLayout.NORTH);
+        add(makeCenter(),    BorderLayout.CENTER);
+        add(makeFormPanel(), BorderLayout.EAST);
+        loadCourses();
+    }
+
+    private JPanel makeTopBar() {
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        bar.setBorder(new EmptyBorder(0,0,16,0));
+        JLabel title = new JLabel("📚  Course Management");
+        title.setFont(new Font("Georgia", Font.BOLD, 18));
+        title.setForeground(NAVY);
+        bar.add(title, BorderLayout.WEST);
+        return bar;
+    }
+
+    private JScrollPane makeCenter() {
+        String[] cols = {"ID","Course Name","Code",
+                         "Faculty","Semester","Credits"};
+        model = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+        table = new JTable(model);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setRowHeight(32);
+        table.getTableHeader().setFont(
+            new Font("SansSerif", Font.BOLD, 13));
+        table.getTableHeader().setBackground(NAVY);
+        table.getTableHeader().setForeground(WHITE);
+        table.setSelectionBackground(new Color(254,249,195));
+        table.setGridColor(new Color(226,232,240));
+
+        table.getColumnModel().getColumn(0).setMinWidth(0);
+        table.getColumnModel().getColumn(0).setMaxWidth(0);
+        table.getColumnModel().getColumn(0).setWidth(0);
+
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(BorderFactory.createLineBorder(
+            new Color(226,232,240),1,true));
+        return scroll;
+    }
+
+    private JPanel makeFormPanel() {
+        JPanel form = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(WHITE);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),16,16));
+            }
+        };
+        form.setOpaque(false);
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setBorder(new EmptyBorder(20,20,20,20));
+        form.setPreferredSize(new Dimension(240,0));
+
+        JLabel formTitle = new JLabel("Course Details");
+        formTitle.setFont(new Font("Georgia", Font.BOLD, 15));
+        formTitle.setForeground(NAVY);
+        formTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        txtName    = makeField();
+        txtCode    = makeField();
+        txtSem     = makeField();
+        txtCredits = makeField();
+        cmbFaculty = new JComboBox<>();
+        cmbFaculty.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        cmbFaculty.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
+        cmbFaculty.setAlignmentX(Component.LEFT_ALIGNMENT);
+        loadFacultyCombo();
+
+        btnAdd    = makeBtn("➕ Add",   AMBER);
+        btnDelete = makeBtn("🗑 Delete",new Color(220,38,38));
+        btnClear  = makeBtn("✕ Clear", new Color(100,116,139));
+
+        for (JButton b : new JButton[]{btnAdd,btnDelete,btnClear})
+            b.setMaximumSize(new Dimension(Integer.MAX_VALUE,38));
+
+        btnAdd.addActionListener(e    -> addCourse());
+        btnDelete.addActionListener(e -> deleteCourse());
+        btnClear.addActionListener(e  -> clearForm());
+
+        form.add(formTitle);
+        form.add(Box.createVerticalStrut(14));
+        form.add(lbl("Course Name")); form.add(txtName);
+        form.add(Box.createVerticalStrut(8));
+        form.add(lbl("Course Code")); form.add(txtCode);
+        form.add(Box.createVerticalStrut(8));
+        form.add(lbl("Faculty"));     form.add(cmbFaculty);
+        form.add(Box.createVerticalStrut(8));
+        form.add(lbl("Semester"));    form.add(txtSem);
+        form.add(Box.createVerticalStrut(8));
+        form.add(lbl("Credits"));     form.add(txtCredits);
+        form.add(Box.createVerticalStrut(16));
+        form.add(btnAdd);
+        form.add(Box.createVerticalStrut(6));
+        form.add(btnDelete);
+        form.add(Box.createVerticalStrut(6));
+        form.add(btnClear);
+        return form;
+    }
+
+    private JLabel lbl(String t) {
+        JLabel l = new JLabel(t);
+        l.setFont(new Font("SansSerif", Font.BOLD, 11));
+        l.setForeground(new Color(51,65,85));
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
+    }
+
+    private JTextField makeField() {
+        JTextField tf = new JTextField();
+        tf.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE,34));
+        tf.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(
+                new Color(203,213,225),1,true),
+            BorderFactory.createEmptyBorder(5,8,5,8)));
+        tf.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return tf;
+    }
+
+    private JButton makeBtn(String text, Color color) {
+        JButton btn = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(getModel().isRollover() ?
+                    color.darker() : color);
+                g2.fill(new RoundRectangle2D.Double(
+                    0,0,getWidth(),getHeight(),8,8));
+                super.paintComponent(g);
+            }
+        };
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        btn.setForeground(WHITE);
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return btn;
+    }
+
+    private void loadFacultyCombo() {
+        try {
+            Connection conn = DBConnection.getConnection();
+            ResultSet rs = conn.createStatement().executeQuery(
+                "SELECT faculty_id, name FROM faculty ORDER BY name");
+            cmbFaculty.removeAllItems();
+            while (rs.next()) {
+                cmbFaculty.addItem(rs.getInt("faculty_id") +
+                    " - " + rs.getString("name"));
+            }
+            conn.close();
+        } catch (Exception e) {
+            System.out.println("Faculty load error: " + e.getMessage());
+        }
+    }
+
+    private void loadCourses() {
+        try {
+            Connection conn = DBConnection.getConnection();
+            ResultSet rs = conn.createStatement().executeQuery(
+                "SELECT c.course_id, c.course_name, c.course_code, " +
+                "f.name, c.semester, c.credits " +
+                "FROM courses c JOIN faculty f " +
+                "ON c.faculty_id=f.faculty_id ORDER BY c.course_name");
+            model.setRowCount(0);
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                    rs.getInt(1), rs.getString(2),
+                    rs.getString(3), rs.getString(4),
+                    rs.getInt(5),   rs.getInt(6)
+                });
+            }
+            conn.close();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Error: " + e.getMessage());
+        }
+    }
+
+    private void addCourse() {
+        if (txtName.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Course name is required!");
+            return;
+        }
+        try {
+            String sel = cmbFaculty.getSelectedItem().toString();
+            int fid = Integer.parseInt(sel.split(" - ")[0]);
+            Connection conn = DBConnection.getConnection();
+            PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO courses(course_name,course_code," +
+                "faculty_id,semester,credits) VALUES(?,?,?,?,?)");
+            ps.setString(1, txtName.getText().trim());
+            ps.setString(2, txtCode.getText().trim());
+            ps.setInt(3, fid);
+            ps.setInt(4, Integer.parseInt(
+                txtSem.getText().trim().isEmpty() ?
+                "1" : txtSem.getText().trim()));
+            ps.setInt(5, Integer.parseInt(
+                txtCredits.getText().trim().isEmpty() ?
+                "3" : txtCredits.getText().trim()));
+            ps.executeUpdate();
+            JOptionPane.showMessageDialog(this,
+                "✅ Course added!");
+            loadCourses(); clearForm(); conn.close();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Error: " + e.getMessage());
+        }
+    }
+
+    private void deleteCourse() {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this,
+                "Select a course to delete!");
+            return;
+        }
+        int c = JOptionPane.showConfirmDialog(this,
+            "Delete this course?","Confirm",
+            JOptionPane.YES_NO_OPTION);
+        if (c == JOptionPane.YES_OPTION) {
+            try {
+                int id = (int) model.getValueAt(row,0);
+                Connection conn = DBConnection.getConnection();
+                PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM courses WHERE course_id=?");
+                ps.setInt(1,id);
+                ps.executeUpdate();
+                JOptionPane.showMessageDialog(this,
+                    "✅ Course deleted!");
+                loadCourses(); conn.close();
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this,
+                    "Error: " + e.getMessage());
+            }
+        }
+    }
+
+    private void clearForm() {
+        txtName.setText("");
+        txtCode.setText("");
+        txtSem.setText("");
+        txtCredits.setText("");
+        table.clearSelection();
+    }
+}
