@@ -1,7 +1,7 @@
 # Smart University Portal with Real-Time Tracking System
 
 ## About
-A web-based university management system built as BCA Final Year Project.
+A web-based university management system built as BCA Final Year Project. A comprehensive university management system with real-time tracking of student attendance, academic performance, and fee management.
 
 ## Tech Stack
 - Java (Backend + GUI)
