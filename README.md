@@ -79,6 +79,25 @@ The project provides role-based access control for Administrators, Faculty Membe
 - Open `python/university_reports.ipynb` in Jupyter Notebook
 - Run all cells to generate charts
 
+
+## Test Credentials
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | admin | admin123 |
+| Faculty | sharma | sharma123 |
+| Student | tanisha | pass123 |
+
+
+## Database Tables
+* users
+* students
+* faculty
+* courses
+* attendance
+* results
+* fees
+
+  
 ## Developer
 - Name: Tanisha Jain
 - Course: BCA (Online) - Manipal University Jaipur
