@@ -50,28 +50,34 @@ The project provides role-based access control for Administrators, Faculty Membe
 * Python-Based Data Visualization
 
   
-## Tech Stack
-- Java (Backend + GUI)
-- MySQL (Database)
-- HTML & CSS (Frontend)
-- Python (Reports & Analytics)
+## Technology Stack
+| Technology    | Purpose               |
+| ------------- | --------------------- |
+| Java (JDK 17) | Application Logic     |
+| Java Swing    | Desktop GUI           |
+| MySQL         | Database              |
+| JDBC          | Database Connectivity |
+| HTML5 & CSS3  | Frontend Interface    |
+| Python        | Analytics & Reporting |
+| Pandas        | Data Analysis         |
+| Matplotlib    | Graph Generation      |
+| XAMPP         | Local Database Server |
 
-## Modules
-1. Login & Authentication
-2. Student Management
-3. Faculty Management
-4. Course Management
-5. Attendance Tracking
-6. Result Management
-7. Fee Management
-8. Reports & Analytics
 
-## Setup
+## Installation & Setup
+
 1. Install XAMPP and start Apache + MySQL
 2. Import `database/university_portal.sql` in phpMyAdmin
-3. Open project in NetBeans
-4. Add MySQL Connector JAR to libraries
-5. Run `DBConnection.java` to test connection
+3. Open project in NetBeans (JDK 17)
+4. Add mysql-connector-j-9.7.0.jar to Libraries
+5. Run `Login.java` to start application
+
+**For Frontend:**
+- Open `frontend/index.html` in browser with Live Server extension
+
+**For Analytics:**
+- Open `python/university_reports.ipynb` in Jupyter Notebook
+- Run all cells to generate charts
 
 ## Developer
 - Name: Tanisha Jain
