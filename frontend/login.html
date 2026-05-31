@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart University Portal — Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: linear-gradient(135deg, #0f2044 0%, #1a56db 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { display: flex; width: 90%; max-width: 1000px; height: 500px; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .left-panel {
+            background: linear-gradient(180deg, #0f2044 0%, #1a3a52 100%);
+            color: white;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 45%;
+        }
+        .left-panel h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+        .left-panel p {
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        .features {
+            list-style: none;
+        }
+        .features li {
+            font-size: 14px;
+            margin: 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .features li:before {
+            content: "✓";
+            color: #16a34a;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .right-panel {
+            background: white;
+            padding: 60px 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 55%;
+        }
+        .logo {
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            color: #0f2044;
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-family: 'Playfair Display', serif;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: #334155;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            transition: border 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1a56db;
+            box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.1);
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .btn-login {
+            background: #1a56db;
+            color: white;
+        }
+        .btn-login:hover {
+            background: #1a3a9a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(26, 86, 219, 0.3);
+        }
+        .btn-clear {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .btn-clear:hover {
+            background: #e2e8f0;
+        }
+        .error {
+            color: #dc2626;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+        .success {
+            color: #16a34a;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+        <h1>🏛️ Smart University Portal</h1>
+        <p>A unified platform for students, faculty and administration to manage academic activities efficiently.</p>
+        <ul class="features">
+            <li>Student Management</li>
+            <li>Attendance Tracking</li>
+            <li>Results & Analytics</li>
+            <li>Fee Management</li>
+            <li>Role-Based Access</li>
+            <li>Real-Time Reports</li>
+        </ul>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+        <div class="logo">🔐</div>
+        <h2>Welcome Back!</h2>
+        <p class="subtitle">Login to access your portal</p>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="Enter your username" required>
+                <span class="error" id="usernameError"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+                <span class="error" id="passwordError"></span>
+            </div>
+
+            <div class="form-group">
+                <label>Login As</label>
+                <select id="role" required>
+                    <option value="">-- Select Role --</option>
+                    <option value="admin">Admin</option>
+                    <option value="faculty">Faculty</option>
+                    <option value="student">Student</option>
+                </select>
+                <span class="error" id="roleError"></span>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn-login">🔓 Login</button>
+                <button type="reset" class="btn-clear">✕ Clear</button>
+            </div>
+
+            <div id="messageBox"></div>
+        </form>
+
+        <!-- Test Credentials Info -->
+        <div style="margin-top: 30px; padding: 15px; background: #f1f5f9; border-radius: 8px; font-size: 12px; color: #475569;">
+            <strong>🧪 Test Credentials:</strong><br>
+            Admin: <code>admin</code> / <code>admin123</code><br>
+            Faculty: <code>sharma</code> / <code>sharma123</code><br>
+            Student: <code>tanisha</code> / <code>pass123</code>
+        </div>
+    </div>
+</div>
+
+<script>
+// Test credentials database
+const users = {
+    admin: { password: "admin123", role: "admin" },
+    sharma: { password: "sharma123", role: "faculty" },
+    tanisha: { password: "pass123", role: "student" }
+};
+
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    // Get form values
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+    const selectedRole = document.getElementById("role").value;
+
+    // Clear previous errors
+    document.querySelectorAll(".error").forEach(el => el.style.display = "none");
+    document.getElementById("messageBox").innerHTML = "";
+
+    // Validation
+    if (!username) {
+        document.getElementById("usernameError").textContent = "Username is required";
+        document.getElementById("usernameError").style.display = "block";
+        return;
+    }
+
+    if (!password) {
+        document.getElementById("passwordError").textContent = "Password is required";
+        document.getElementById("passwordError").style.display = "block";
+        return;
+    }
+
+    if (!selectedRole) {
+        document.getElementById("roleError").textContent = "Please select a role";
+        document.getElementById("roleError").style.display = "block";
+        return;
+    }
+
+    // Check if user exists
+    if (!users[username]) {
+        const msg = document.getElementById("messageBox");
+        msg.innerHTML = '<div style="color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 6px; font-size: 13px;">❌ Invalid username!</div>';
+        return;
+    }
+
+    // Verify password
+    if (users[username].password !== password) {
+        const msg = document.getElementById("messageBox");
+        msg.innerHTML = '<div style="color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 6px; font-size: 13px;">❌ Invalid password!</div>';
+        return;
+    }
+
+    // Verify role matches
+    if (users[username].role !== selectedRole) {
+        const msg = document.getElementById("messageBox");
+        msg.innerHTML = '<div style="color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 6px; font-size: 13px;">❌ Role mismatch!</div>';
+        return;
+    }
+
+    // Success — redirect to dashboard
+    const msg = document.getElementById("messageBox");
+    msg.innerHTML = '<div style="color: #16a34a; background: #dcfce7; padding: 10px; border-radius: 6px; font-size: 13px;">✅ Login successful! Redirecting...</div>';
+
+    setTimeout(() => {
+        if (selectedRole === "admin") {
+            window.location.href = "admin-dashboard.html?user=" + username;
+        } else if (selectedRole === "faculty") {
+            window.location.href = "faculty-dashboard.html?user=" + username;
+        } else if (selectedRole === "student") {
+            window.location.href = "student-dashboard.html?user=" + username;
+        }
+    }, 1500);
+});
+</script>
+
+</body>
+</html>
