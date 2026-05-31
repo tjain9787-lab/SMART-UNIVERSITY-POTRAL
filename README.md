@@ -5,6 +5,51 @@ The Smart University Portal with Real-Time Tracking System is a comprehensive un
 The system is designed to automate and simplify university administrative and academic processes such as student management, faculty management, course management, attendance tracking, result management, fee management, and analytical reporting.
 The project provides role-based access control for Administrators, Faculty Members, and Students.
 
+## Features
+### Authentication & Authorization
+* Secure Login System
+* Role-Based Access Control
+* Separate Dashboards for Admin, Faculty, and Student
+
+### Student Management
+* Add Student
+* Update Student
+* Delete Student
+* Search Student
+
+### Faculty Management
+* Add Faculty
+* Update Faculty
+* Delete Faculty
+
+### Course Management
+* Create Courses
+* Assign Faculty
+* Manage Credits and Semester Information
+
+### Attendance Tracking
+* Mark Attendance
+* View Attendance Summary
+* Attendance Percentage Calculation
+* Attendance Threshold Monitoring
+
+### Result Management
+* Enter Marks
+* Automatic Grade Calculation
+* View Student Results
+
+### Fee Management
+* Track Fee Status
+* Paid / Pending / Overdue Categories
+* Payment History Management
+
+### Reports & Analytics
+* Attendance Reports
+* Academic Performance Analysis
+* Fee Collection Analytics
+* Python-Based Data Visualization
+
+  
 ## Tech Stack
 - Java (Backend + GUI)
 - MySQL (Database)
