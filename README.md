@@ -97,8 +97,26 @@ The project provides role-based access control for Administrators, Faculty Membe
 * results
 * fees
 
+
+## Project Structure
+SmartUniversityPortal/
+├── src/                    → Java Source Code
+├── database/               → MySQL Scripts
+├── frontend/               → HTML/CSS Files
+├── python/                 → Analytics Scripts
+├── DOCS/                   → ER Diagram, DFD, Screenshots
+└── README.md               → Project Documentation
+
+
+## Repository
+**GitHub:** https://github.com/tjain9787-lab/SMART-UNIVERSITY-PORTAL
+
   
 ## Developer
 - Name: Tanisha Jain
 - Course: BCA (Online) - Manipal University Jaipur
 - Year: 3rd Year Final Project
+
+
+## License
+This is an academic project. No commercial use without permission.
