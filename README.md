@@ -51,18 +51,17 @@ The project provides role-based access control for Administrators, Faculty Membe
 * Python-Based Data Visualization
 
   
-## Technology Stack
-| Technology    | Purpose               |
-| ------------- | --------------------- |
-| Java (JDK 17) | Application Logic     |
-| Java Swing    | Desktop GUI           |
-| MySQL         | Database              |
-| JDBC          | Database Connectivity |
-| HTML5 & CSS3  | Frontend Interface    |
-| Python        | Analytics & Reporting |
-| Pandas        | Data Analysis         |
-| Matplotlib    | Graph Generation      |
-| XAMPP         | Local Database Server |
+## 💻 Technology Stack
+
+| Technology | Purpose |
+| :--- | :--- |
+| **Java (JDK 17)** | Core Application Logic |
+| **Java Swing** | Desktop Graphical User Interface (GUI) |
+| **MySQL** | Relational Database Management |
+| **JDBC** | Database Connectivity |
+| **HTML5 & CSS3** | Web Frontend Interface (Supplementary/Student View) |
+| **Python (Pandas, Matplotlib)** | Data Analysis & Analytics Graph Generation |
+| **XAMPP** | Local Database Server (phpMyAdmin) |
 
 
 ## Installation & Setup
@@ -99,14 +98,16 @@ The project provides role-based access control for Administrators, Faculty Membe
 * fees
 
 
-## Project Structure
+## 📁 Project Structure
+
+```text
 SmartUniversityPortal/
-├── src/                    → Java Source Code
-├── database/               → MySQL Scripts
-├── frontend/               → HTML/CSS Files
-├── python/                 → Analytics Scripts
-├── DOCS/                   → ER Diagram, DFD, Screenshots
-└── README.md               → Project Documentation
+├── src/               # Java Source Code (Swing GUI & Logic)
+├── database/          # MySQL Database Scripts (.sql files)
+├── frontend/          # HTML/CSS Files for Web View
+├── python/            # Jupyter Notebooks for Analytics & Charts
+├── DOCS/              # ER Diagram, DFD, and Project Screenshots
+└── README.md          # Project Documentation
 
 
 ## Repository
